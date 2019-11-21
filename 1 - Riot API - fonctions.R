@@ -15,6 +15,8 @@ library(dplyr)
 library(tibble)
 library(stringr)
 library(purrr)
+library(plotly)
+
 
 api_key = "RGAPI-3df78f29-adf2-4ffe-a288-3d9400d93427"
 url = "https://euw1.api.riotgames.com/lol"
@@ -103,7 +105,8 @@ get_match_type = function(){
 get_score = function(acc_id, match){
   temp = match$gameId %>% as.data.frame()
   i = 1
-  for (j in c(20, 40, 50)){
+  #for (j in c(20, 40, 50)){ # Produit 50 requete, ça ne nous permet pas de faire plusieurs tentatives à cause de la limite
+  for (j in 20){
     temp[i:j, 2] = unlist(lapply(temp[i:j, 1], get_match_info, acc_id = acc_id))
     Sys.sleep(time = 1)
     i = j+1
@@ -122,21 +125,58 @@ join_all_df = function(match, champ_id, match_type, score){
   match_df$type = str_remove_all(match_df$description, "games|5v5")
   match_df$player = substring(match_df$description, 1,3)
 
-  match_df = subset(match_df, select = -c(champion, queue, description))
+  match_df = subset(match_df, select = -c(champion, queue, description)) %>% na.omit()
   return(match_df)
 }
 
 
+## Permet pie
+get_pie = function(match_df){
+  colors <- c('rgb(211,94,96)', 'rgb(128,133,133)', 'rgb(144,103,167)', 'rgb(171,104,87)', 'rgb(114,147,203)')
+  
+  freq = (table(match_df$lane)/nrow(match_df)) %>% as.data.frame()
+  colnames(freq) = c("lane", "pct")
+  
+  return(plot_ly(freq, labels = ~lane, values = ~pct, type = "pie",
+                 textposition = "inside", textinfo = 'label+percent',
+                 insidetextfont = list(color = '#FFFFFF'),
+                 hoverinfo = 'text',
+                 text = ~pct,
+                 marker = list(colors = colors,
+                               line = list(color = '#FFFFFF', width = 1)),
+                 #The 'pull' attribute can also be used to create space between the sectors
+                 showlegend = FALSE) %>%
+           layout(title = paste('Voie choisie sur les', nrow(match_df), "dernieres parties"),
+                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)))
+}
 
+
+## Ratio win/loose
+get_ratio = function(match_df){
+  freq = table(match_df$lane, match_df$score) %>% as.data.frame.matrix() 
+  freq = freq / as.vector(t(freq[1] + freq[2])) %>% round(2)
+  
+  return(plot_ly(freq, x = ~row.names(freq), y = ~LOOSE, type="bar", name="Loose", marker = list(color="rgb(189, 51, 49)")) %>%
+    add_trace(y = ~WIN, name="Win", marker = list(color="rgb(110, 167, 219)")) %>%
+    layout(yaxis = list(title = 'Win/Loose'), barmode = 'stack',
+           xaxis = list(title = "")))
+}
 
 # Test ----
-# start = Sys.time()
 # 
 # acc_id     = get_encryp("Grodzzilla")
 # match      = get_match(acc_id)
 # champ_id   = get_champ_id()
 # match_type = get_match_type()
-# score      = get_score(acc_id)
-# df_total    = join_all_df()
+# score      = get_score(acc_id, match)
+# match_df   = join_all_df(match, champ_id, match_type, score)
 # 
-# Sys.time() - start
+# get_pie(match_df)
+# get_ratio(match_df)
+
+
+
+
+
+
