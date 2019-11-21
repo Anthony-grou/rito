@@ -16,8 +16,8 @@ ui = fluidPage(
     
     mainPanel(
       DT::dataTableOutput("table"),
-      plotlyOutput("pie"),
-      plotlyOutput("ratio")
+      column(6, plotlyOutput("pie")),
+      column(6, plotlyOutput("ratio"))
     )
   )
 )

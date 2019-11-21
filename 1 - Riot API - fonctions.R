@@ -138,7 +138,7 @@ get_pie = function(match_df){
   colnames(freq) = c("lane", "pct")
   
   return(plot_ly(freq, labels = ~lane, values = ~pct, type = "pie",
-                 textposition = "inside", textinfo = 'label+percent',
+                 textposition = "inside", textinfo = 'percent',
                  insidetextfont = list(color = '#FFFFFF'),
                  hoverinfo = 'text',
                  text = ~pct,
